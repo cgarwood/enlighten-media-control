@@ -4,13 +4,14 @@
 
 const WebSocket = require('ws');
 
+const CONFIG = require('./config.js');
 const logger = require('./logger.js');
 
 logger.info('Starting Enlighten Media Control Server.');
 
 /* Set up Websocket Server */
-logger.info('Setting up WebSocket server.');
-const wss = new WebSocket.Server({ port: 8080 });
+logger.info(`Setting up WebSocket server on port ${CONFIG.port}.`);
+const wss = new WebSocket.Server({ port: CONFIG.port });
 
 wss.on('connection', (ws, req) => {
     ws.on('message', message => {

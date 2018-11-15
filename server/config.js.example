@@ -1,0 +1,12 @@
+const CONFIG = {
+    port: 8080,
+    components: {
+        propresenter: {
+            host: '',
+            remote_port: '',
+            stage_display_port: '',
+        },
+    },
+};
+
+module.exports = CONFIG;
