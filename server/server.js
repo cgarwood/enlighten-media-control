@@ -7,6 +7,8 @@ const WebSocket = require('ws');
 const CONFIG = require('./config.js');
 const logger = require('./logger.js');
 
+const components = [];
+
 logger.info('Starting Enlighten Media Control Server.');
 
 /* Set up Websocket Server */
@@ -19,4 +21,11 @@ wss.on('connection', (ws, req) => {
     });
     logger.info(`Incoming Connection from ${req.connection.remoteAddress}`);
     ws.send('Connection Established.');
+});
+
+/* Set up Components */
+Object.keys(CONFIG.components).forEach(key => {
+    logger.info(`Setting up component ${key}`);
+    components[key] = require(`./components/${key}.js`); // eslint-disable-line global-require, import/no-dynamic-require
+    components[key].setupComponent();
 });
