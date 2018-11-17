@@ -24,6 +24,7 @@ class StageDisplayApi {
 
         this.ws = new WebSocket(`ws://${this.host}:${this.port}/stagedisplay`);
         this.ws.on('open', () => {
+            // Authenticate on connection
             this.ws.send(
                 `{"pwd":"${this.stage_display_password}","ptl":610,"acn":"ath"}`
             );
@@ -61,9 +62,58 @@ class StageDisplayApi {
     }
 }
 
+class RemoteApi {
+    constructor() {
+        this.host = CONFIG.components.propresenter.host;
+        this.port = CONFIG.components.propresenter.port;
+        this.remote_password = CONFIG.components.propresenter.remote_password;
+        this.connected = false;
+
+        logger.debug(
+            `Connecting to Remote Control API at ${this.host}:${this.port}`
+        );
+
+        this.ws = new WebSocket(`ws://${this.host}:${this.port}/remote`);
+        this.ws.on('open', () => {
+            // Authenticate on connection
+            this.ws.send(
+                `{"action":"authenticate","protocol":"600","password":"${
+                    this.remote_password
+                }"}`
+            );
+            logger.debug('Remote Control API connected');
+        });
+        this.ws.on('message', data => {
+            this.handleMessage(data);
+        });
+        this.ws.on('close', () => {
+            logger.error('ProPresenter Remote Control API disconnected');
+        });
+    }
+
+    handleMessage(data) {
+        logger.debug(`Remote API websocket data: ${data}`);
+        this.data = JSON.parse(data);
+
+        if (this.data.authenticated === 0) {
+            logger.error(
+                `ProPresenter Remote API Authentication Failed: ${
+                    this.data.error
+                }`
+            );
+        }
+        if (this.data.authenticated === 1) {
+            this.connected = true;
+            logger.info(
+                'ProPresenter Remote Control API Connected and Authenticated.'
+            );
+        }
+    }
+}
+
 async function setupComponent() {
     this.stageDisplayApi = new StageDisplayApi();
-
+    this.remoteApi = new RemoteApi();
     logger.info('ProPresenter component initialized');
 }
 module.exports = { setupComponent };
