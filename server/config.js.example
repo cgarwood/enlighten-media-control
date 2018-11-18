@@ -3,8 +3,9 @@ const CONFIG = {
     components: {
         propresenter: {
             host: '',
-            remote_port: '',
-            stage_display_port: '',
+            port: '',
+            remote_password: '',
+            stage_display_password: '',
         },
     },
 };
