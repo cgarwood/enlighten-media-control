@@ -17,25 +17,56 @@ class StageDisplayApi {
         this.stage_display_password =
             CONFIG.components.propresenter.stage_display_password;
         this.connected = false;
+        this.data = null;
+
+        // callback function
+        this.onEvent = null;
+
+        // possible StageDisplay values
+        this.clock_string = '';
+        this.current_slide = {
+            uid: '',
+            content: '',
+            notes: '',
+        };
+        this.next_slide = {
+            uid: '',
+            content: '',
+            notes: '',
+        };
 
         logger.debug(
             `Connecting to Stage Display API at ${this.host}:${this.port}`
         );
+    }
 
+    connect() {
         this.ws = new WebSocket(`ws://${this.host}:${this.port}/stagedisplay`);
         this.ws.on('open', () => {
             // Authenticate on connection
-            this.ws.send(
-                `{"pwd":"${this.stage_display_password}","ptl":610,"acn":"ath"}`
-            );
+            const msg = {
+                pwd: this.stage_display_password,
+                ptl: 610,
+                acn: 'ath',
+            };
+            this.ws.send(JSON.stringify(msg));
             logger.debug('Stage Display API connected');
+            this.postEvent('connected', {});
         });
         this.ws.on('message', data => {
+            this.postEvent('message', data);
             this.handleMessage(data);
+            this.postEvent('update', {});
         });
         this.ws.on('close', () => {
+            this.connected = false;
             logger.error('ProPresenter Stage Display API disconnected');
+            this.postEvent('disconnected', {});
         });
+    }
+
+    postEvent(event, data) {
+        if (this.onEvent != null) this.onEvent(event, data);
     }
 
     handleMessage(data) {
@@ -43,6 +74,7 @@ class StageDisplayApi {
         switch (this.data.acn) {
             case 'ath':
                 if (this.data.ath === false) {
+                    this.connected = false;
                     logger.error(
                         `ProPresenter Stage Display Authentication Failed: ${
                             this.data.err
@@ -54,6 +86,31 @@ class StageDisplayApi {
                         'Stage Display API Connected and Authenticated'
                     );
                 }
+                break;
+            case 'sys':
+                this.clock_string = this.data.txt;
+                break;
+            case 'fv':
+                this.data.ary.forEach(element => {
+                    switch (element.acn) {
+                        case 'cs':
+                            this.current_slide.uid = element.uid;
+                            this.current_slide.txt = element.txt;
+                            break;
+                        case 'ns':
+                            this.next_slide.uid = element.uid;
+                            this.next_slide.txt = element.txt;
+                            break;
+                        case 'csn':
+                            this.current_slide.notes = element.txt;
+                            break;
+                        case 'nsn':
+                            this.next_slide.notes = element.txt;
+                            break;
+                        default:
+                            break;
+                    }
+                });
                 break;
             default:
                 break;
@@ -69,6 +126,8 @@ class RemoteApi {
         this.remote_password = CONFIG.components.propresenter.remote_password;
         this.connected = false;
 
+        this.onEvent = null;
+
         logger.debug(
             `Connecting to Remote Control API at ${this.host}:${this.port}`
         );
@@ -76,19 +135,28 @@ class RemoteApi {
         this.ws = new WebSocket(`ws://${this.host}:${this.port}/remote`);
         this.ws.on('open', () => {
             // Authenticate on connection
-            this.ws.send(
-                `{"action":"authenticate","protocol":"600","password":"${
-                    this.remote_password
-                }"}`
-            );
+            const msg = {
+                action: 'authenticate',
+                protocol: 600,
+                password: this.remote_password,
+            };
+            this.ws.send(JSON.stringify(msg));
             logger.debug('Remote Control API connected');
+            this.postEvent('connected', {});
         });
         this.ws.on('message', data => {
+            this.postEvent('message', { data: this.data });
             this.handleMessage(data);
+            this.postEvent('update', {});
         });
         this.ws.on('close', () => {
             logger.error('ProPresenter Remote Control API disconnected');
+            this.postEvent('disconnected', {});
         });
+    }
+
+    postEvent(event, data) {
+        if (this.onEvent != null) this.onEvent(event, data);
     }
 
     handleMessage(data) {
