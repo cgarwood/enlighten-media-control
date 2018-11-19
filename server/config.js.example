@@ -6,10 +6,7 @@ const CONFIG = {
             port: '',
             remote_password: '',
             stage_display_password: '',
-<<<<<<< HEAD
             slide_quality: 25,
-=======
->>>>>>> upstream/master
         },
     },
 };
