@@ -75,7 +75,7 @@ class StageDisplayApi extends EventEmitter {
         this.ws.on('close', () => {
             this.connected = false;
             logger.error('ProPresenter Stage Display API disconnected');
-            this.emit('disconnected', {});
+            this.emit('disconnect', {});
         });
     }
 
@@ -92,7 +92,7 @@ class StageDisplayApi extends EventEmitter {
                     );
                 } else {
                     this.connected = true;
-                    this.emit('connected', {});
+                    this.emit('connect', {});
                     logger.debug(
                         'Stage Display API Connected and Authenticated'
                     );
@@ -169,6 +169,8 @@ class RemoteApi extends EventEmitter {
     }
 
     connect() {
+        if (this.connected) return;
+
         logger.debug(
             `Connecting to Remote Control API at ${this.host}:${this.port}`
         );
@@ -196,7 +198,7 @@ class RemoteApi extends EventEmitter {
         this.ws.on('close', () => {
             this.connected = false;
             logger.error('ProPresenter Remote Control API disconnected');
-            this.emit('disconnected', {});
+            this.emit('disconnect', {});
         });
     }
 
@@ -219,7 +221,7 @@ class RemoteApi extends EventEmitter {
                     logger.info(
                         'ProPresenter Remote Control API Connected and Authenticated.'
                     );
-                    this.emit('connected', {});
+                    this.emit('connect', {});
                 }
                 break;
             case 'libraryRequest':
@@ -259,39 +261,48 @@ class RemoteApi extends EventEmitter {
     }
 
     getLibrary() {
+        if (!this.connected) return false;
         this.ws.send(
             JSON.stringify({
                 action: 'libraryRequest',
             })
         );
+        return true;
     }
 
     getPlaylists() {
+        if (!this.connected) return false;
         this.ws.send(
             JSON.stringify({
                 action: 'playlistRequestAll',
             })
         );
+        return true;
     }
 
     getCurrentPresentation() {
+        if (!this.connected) return false;
         this.ws.send(
             JSON.stringify({
                 action: 'presentationCurrent',
                 presentationSlideQuality: this.slide_quality,
             })
         );
+        return true;
     }
 
     getCurrentSlideIndex() {
+        if (!this.connected) return false;
         this.ws.send(
             JSON.stringify({
                 action: 'presentationSlideIndex',
             })
         );
+        return true;
     }
 
     getPresentation(presentationPath) {
+        if (!this.connected) return false;
         this.ws.send(
             JSON.stringify({
                 action: 'presentationRequest',
@@ -299,9 +310,11 @@ class RemoteApi extends EventEmitter {
                 presentationSlideQuality: this.slide_quality,
             })
         );
+        return true;
     }
 
     triggerSlide(slideIndex, presentationPath) {
+        if (!this.connected) return false;
         const realPresentationPath =
             presentationPath || this.presentation.presentationPath;
         this.ws.send(
@@ -311,6 +324,7 @@ class RemoteApi extends EventEmitter {
                 realPresentationPath,
             })
         );
+        return true;
     }
 }
 
