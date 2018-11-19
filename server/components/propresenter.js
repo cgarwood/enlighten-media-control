@@ -9,28 +9,21 @@
 */
 
 const WebSocket = require('ws');
-
+const EventEmitter = require('events');
 const CONFIG = require('../config.js');
 const logger = require('../logger.js');
 
-function postEvent(event, data, callback) {
-    // add a timestamp to every event
-    const newData = data;
-    if (!newData.ts) newData.ts = Date.now();
-    if (this.onEvent != null) callback(event, newData);
-}
+const events = new EventEmitter();
 
-class StageDisplayApi {
+class StageDisplayApi extends EventEmitter {
     constructor() {
+        super();
         this.host = CONFIG.components.propresenter.host;
         this.port = CONFIG.components.propresenter.port;
         this.stage_display_password =
             CONFIG.components.propresenter.stage_display_password;
         this.connected = false;
         this.data = null;
-
-        // callback function
-        this.onEvent = null;
 
         // possible StageDisplay values
         this.clock_string = '';
@@ -45,6 +38,13 @@ class StageDisplayApi {
             notes: '',
         };
         logger.debug(`StageDisplayApi object created`);
+    }
+
+    // override the event emitter to bubble events up
+    // to the component level emitter also
+    emit(event, ...data) {
+        events.emit(event, ...data);
+        super.emit(event, ...data);
     }
 
     connect() {
@@ -63,15 +63,19 @@ class StageDisplayApi {
             this.ws.send(JSON.stringify(msg));
             logger.debug('Stage Display API connected');
         });
+        this.ws.on('error', data => {
+            this.emit('error', data);
+            logger.error(`Stage Display API connection error: ${data}`);
+        });
         this.ws.on('message', data => {
-            postEvent('message', data, this.onEvent);
+            this.emit('message', data);
             this.handleMessage(data);
-            postEvent('update', {}, this.onEvent);
+            this.emit('update', {});
         });
         this.ws.on('close', () => {
             this.connected = false;
             logger.error('ProPresenter Stage Display API disconnected');
-            postEvent('disconnected', {}, this.onEvent);
+            this.emit('disconnected', {});
         });
     }
 
@@ -88,7 +92,7 @@ class StageDisplayApi {
                     );
                 } else {
                     this.connected = true;
-                    postEvent('connected', {}, this.onEvent);
+                    this.emit('connected', {});
                     logger.debug(
                         'Stage Display API Connected and Authenticated'
                     );
@@ -126,15 +130,14 @@ class StageDisplayApi {
     }
 }
 
-class RemoteApi {
+class RemoteApi extends EventEmitter {
     constructor() {
+        super();
+
         this.host = CONFIG.components.propresenter.host;
         this.port = CONFIG.components.propresenter.port;
         this.remote_password = CONFIG.components.propresenter.remote_password;
         this.slide_quality = CONFIG.components.propresenter.slide_quality;
-
-        // event callback
-        this.onEvent = null;
 
         // state variables
         this.connected = false;
@@ -158,6 +161,13 @@ class RemoteApi {
         logger.debug(`RemoteControlApi object created`);
     }
 
+    // override the event emitter to bubble events up
+    // to the component level emitter also
+    emit(event, ...data) {
+        events.emit(event, ...data);
+        super.emit(event, ...data);
+    }
+
     connect() {
         logger.debug(
             `Connecting to Remote Control API at ${this.host}:${this.port}`
@@ -173,17 +183,20 @@ class RemoteApi {
             };
             this.ws.send(JSON.stringify(msg));
             logger.debug('Remote Control API connected');
-            this.postEvent('connected', {});
+        });
+        this.ws.on('error', data => {
+            this.emit('error', data);
+            logger.error(`Remote Control API connection error: ${data}`);
         });
         this.ws.on('message', data => {
-            postEvent('message', { data: this.data });
+            this.emit('message', { data: this.data });
             this.handleMessage(data);
-            postEvent('update', {});
+            this.emit('update', {});
         });
         this.ws.on('close', () => {
             this.connected = false;
             logger.error('ProPresenter Remote Control API disconnected');
-            postEvent('disconnected', {});
+            this.emit('disconnected', {});
         });
     }
 
@@ -206,7 +219,7 @@ class RemoteApi {
                     logger.info(
                         'ProPresenter Remote Control API Connected and Authenticated.'
                     );
-                    postEvent('connected', {}, this.onEvent);
+                    this.emit('connected', {});
                 }
                 break;
             case 'libraryRequest':
@@ -234,7 +247,7 @@ class RemoteApi {
                     // defer this slideIndex
                     this.deferredSlideIndex = this.data.slideIndex;
                     // request the proper presentation data
-                    this.requestPresentation(this.data.presentationPath);
+                    this.getPresentation(this.data.presentationPath);
                 } else {
                     this.presentation.slideIndex = this.data.slideIndex;
                 }
@@ -242,7 +255,7 @@ class RemoteApi {
             default:
                 break;
         }
-        postEvent('update', {}, this.onEvent);
+        this.emit('update', {});
     }
 
     getLibrary() {
@@ -301,9 +314,21 @@ class RemoteApi {
     }
 }
 
-async function setupComponent() {
-    this.stageDisplayApi = new StageDisplayApi();
-    this.remoteApi = new RemoteApi();
-    logger.info('ProPresenter component initialized');
+// stageDisplay events and remoteApi events are proxied together
+// by the 'events' property of this class.
+class ProPresenter {
+    constructor() {
+        this.stageDisplayApi = new StageDisplayApi();
+        this.remoteApi = new RemoteApi();
+        logger.info('ProPresenter component initialized');
+        this.events = events;
+    }
+
+    async connect() {
+        this.stageDisplayApi.connect();
+        this.remoteApi.connect();
+    }
 }
-module.exports = { setupComponent };
+const component = new ProPresenter();
+component.connect();
+module.exports = { component };
