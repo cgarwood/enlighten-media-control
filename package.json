@@ -4,6 +4,7 @@
     "description": "Open source audio visual control and automation system",
     "main": "server/server.js",
     "scripts": {
+        "start": "node server/server.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
