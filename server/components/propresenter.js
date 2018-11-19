@@ -173,6 +173,7 @@ class RemoteApi {
             };
             this.ws.send(JSON.stringify(msg));
             logger.debug('Remote Control API connected');
+            this.postEvent('connected', {});
         });
         this.ws.on('message', data => {
             postEvent('message', { data: this.data });
@@ -205,7 +206,7 @@ class RemoteApi {
                     logger.info(
                         'ProPresenter Remote Control API Connected and Authenticated.'
                     );
-                    postEvent('connected', {});
+                    postEvent('connected', {}, this.onEvent);
                 }
                 break;
             case 'libraryRequest':
