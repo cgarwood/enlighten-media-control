@@ -25,6 +25,8 @@ wss.on('connection', (ws, req) => {
 
 /* Set up Components */
 Object.keys(CONFIG.components).forEach(key => {
+    if (!components[key].enabled) return;
+
     logger.info(`Setting up component ${key}`);
 
     // components should export a single 'component' object
