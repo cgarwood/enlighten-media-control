@@ -2,12 +2,17 @@ const CONFIG = {
     port: 8080,
     components: {
         propresenter: {
+            enabled: false,
             host: '',
             port: '',
             remote_password: '',
             stage_display_password: '',
             slide_quality: 25,
         },
+        spotify: {
+            enabled: false,
+            watch_interval: 10 * 1000,
+        }
     },
 };
 
