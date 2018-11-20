@@ -38,6 +38,7 @@
         "singleQuote": true
     },
     "dependencies": {
+        "node-osascript": "^2.1.0",
         "winston": "^3.1.0",
         "ws": "^6.1.0"
     }
