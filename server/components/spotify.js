@@ -72,7 +72,6 @@ class SpotifyController {
         }
         this.events = new EventEmitter();
 
-        this.playlists = [];
         this.current_track = new SpotifyTrack();
 
         this.volume = 0;
@@ -80,6 +79,8 @@ class SpotifyController {
         this.position = 0;
         this.repeating = false;
         this.shuffling = false;
+
+        this.deferred_callbacks = {};
 
         logger.info('Spotify Controller initialized.');
     }
@@ -108,6 +109,20 @@ class SpotifyController {
         });
     }
 
+    handleCallbacks(key) {
+        if (key in this.deferred_callbacks) {
+            this.deferred_callbacks[key].forEach(callback => callback());
+            delete this.deferred_callbacks[key];
+        }
+    }
+
+    deferCallback(key, callback) {
+        if (!callback) return;
+        if (!(key in this.deferred_callbacks))
+            this.deferred_callbacks[key] = [];
+        this.deferred_callbacks[key].push(callback);
+    }
+
     handleMessage(message) {
         // websocket data is a full json representation
         // of the state of the spotify application
@@ -124,6 +139,7 @@ class SpotifyController {
                 this.handleExtra(data.data);
                 break;
         }
+        this.handleCallbacks(data.action);
     }
 
     // checks to see the current status of the spotify player
@@ -161,11 +177,12 @@ class SpotifyController {
     // so we expose a function to allow
     // implementers of this module to
     // send their own commands to the server
-    serverCmd(command, args) {
+    serverCmd(command, args, callback) {
         if (!this.use_server) {
             logger.error('Spotify serverCmd called but no server specified');
             return;
         }
+        this.deferCallback(command, callback);
         this.ws.send(
             JSON.stringify({
                 authkey: this.authkey,
@@ -177,10 +194,12 @@ class SpotifyController {
 
     getCurrentTrack(callback) {
         if (this.use_server) {
+            const cmd = 'getCurrentTrack';
+            this.deferCallback(cmd, callback);
             this.ws.send(
                 JSON.stringify({
                     authkey: this.authkey,
-                    action: 'getCurrentTrack',
+                    action: cmd,
                 })
             );
             return;
@@ -216,7 +235,9 @@ class SpotifyController {
 
     getAppState(callback) {
         if (this.use_server) {
-            this.ws.send(JSON.stringify({ action: 'getAppState' }));
+            const cmd = 'getAppState';
+            this.deferCallback(cmd, callback);
+            this.ws.send(JSON.stringify({ action: cmd }));
             return;
         }
         osa.execute(
@@ -265,7 +286,6 @@ class SpotifyController {
         return this.setVar('repeating', bval);
     }
 
-    /* eslint-disable class-methods-use-this */
     setVar(varname, varval) {
         if (this.use_server) {
             this.ws.send(
@@ -290,12 +310,14 @@ class SpotifyController {
         );
     }
 
-    sendCmd(command) {
+    sendCmd(command, callback) {
         if (this.use_server) {
+            const cmd = 'sendCmd';
+            this.deferCallback(cmd, callback);
             this.ws.send(
                 JSON.stringify({
                     authkey: this.authkey,
-                    action: 'sendCmd',
+                    action: cmd,
                     args: [command],
                 })
             );
@@ -336,19 +358,6 @@ class SpotifyController {
         this.status = 'paused';
         return this.sendCmd('pause');
     }
-
-    fadeTo(targetVolume, duration) {
-        if (this.use_server) {
-            this.ws.send(
-                JSON.stringify({
-                    authkey: this.authkey,
-                    action: 'fadeTo',
-                    args: [targetVolume, duration],
-                })
-            );
-        }
-    }
-    /* eslint-enable class-methods-use-this */
 }
 
 const component = new SpotifyController();

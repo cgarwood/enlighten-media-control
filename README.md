@@ -55,3 +55,50 @@ component = {
     }
 }
 ```
+
+## Spotify
+
+Implements the Spotify AppleScript API. This module controls the spotify player by either of two methods. It can address spotify directly using applescript and the 'node-osascript' module or if the enlighten server is on a platform without node-osascript, this component can make use of a "spotify server" that runs on a mac that also is running spotify. The spotify server must be a websocket server implementing the same functions as this component.
+
+### Component Contents
+
+```javascript
+component = {
+    // emitted events: message, update, error, connect, disconnect
+    EventEmitter events,
+
+    function connect(),
+
+    // updates the current track data
+    function check(),
+
+    // probably will be deprecated
+    int volume,
+    float position,
+    String state,  // paused, playing
+    bool repeating,
+    bool shuffling,
+
+    // for sending commands to a server that supports more
+    // commands than the core component
+    function serverCmd(String customCommand, List args, callback),
+
+    // should be overridden to handle messages not understood
+    // by the core component
+    function handleExtra(),
+
+    // read all relevant track data into this component
+    function getCurrentTrack(callback),
+    function getAppState(callback),
+    function setVolume(int n),  // 0-100
+    function setPosition(float seconds),
+    function setShuffling(bool b),
+    function setRepeating(bool b),
+    function playTrack(String spotifyurl),
+    function nextTrack(),
+    function previousTrack(),
+    function play(),
+    function pause(),
+    function fadeTo(int targetVol, float duration) // duration in seconds
+}
+```
