@@ -54,6 +54,10 @@ class SpotifyController {
         // sending commands to a "spotify server" which
         // must run on a mac that is running spotify.
         // The server will then handle the applescript.
+        // The server must support all the functions
+        // of this module and may optionally support
+        // additional commands. See the functions
+        // handleExtra and serverCmd below.
 
         this.wsurl = CONFIG.components.spotify.wsurl;
         this.authkey = CONFIG.components.spotify.authkey;
@@ -117,6 +121,7 @@ class SpotifyController {
                 this.handleAppState(data.data);
                 break;
             default:
+                this.handleExtra(data.data);
                 break;
         }
     }
@@ -143,10 +148,38 @@ class SpotifyController {
         this.events.emit('update', {});
     }
 
+    // The server may support commands not supported
+    // by this spotify module. This function should
+    // be overridden by users of this module to handle
+    // that extra data. Also see the serverCmd function
+    /* eslint-disable */
+    handleExtra() {}
+    /* eslint-enable */
+
+    // The server may support commands
+    // not supported by this core module
+    // so we expose a function to allow
+    // implementers of this module to
+    // send their own commands to the server
+    serverCmd(command, args) {
+        if (!this.use_server) {
+            logger.error('Spotify serverCmd called but no server specified');
+            return;
+        }
+        this.ws.send(
+            JSON.stringify({
+                authkey: this.authkey,
+                action: command,
+                args,
+            })
+        );
+    }
+
     getCurrentTrack(callback) {
         if (this.use_server) {
             this.ws.send(
                 JSON.stringify({
+                    authkey: this.authkey,
                     action: 'getCurrentTrack',
                 })
             );
@@ -222,13 +255,13 @@ class SpotifyController {
 
     setShuffling(b) {
         this.shuffling = b;
-        const bval = b ? 'on' : 'off';
+        const bval = b ? 'true' : 'false';
         return this.setVar('shuffling', bval);
     }
 
     setRepeating(b) {
         this.repeating = b;
-        const bval = b ? 'on' : 'off';
+        const bval = b ? 'true' : 'false';
         return this.setVar('repeating', bval);
     }
 
@@ -237,6 +270,7 @@ class SpotifyController {
         if (this.use_server) {
             this.ws.send(
                 JSON.stringify({
+                    authkey: this.authkey,
                     action: 'setVar',
                     args: [varname, varval],
                 })
@@ -260,6 +294,7 @@ class SpotifyController {
         if (this.use_server) {
             this.ws.send(
                 JSON.stringify({
+                    authkey: this.authkey,
                     action: 'sendCmd',
                     args: [command],
                 })
@@ -302,6 +337,17 @@ class SpotifyController {
         return this.sendCmd('pause');
     }
 
+    fadeTo(targetVolume, duration) {
+        if (this.use_server) {
+            this.ws.send(
+                JSON.stringify({
+                    authkey: this.authkey,
+                    action: 'fadeTo',
+                    args: [targetVolume, duration],
+                })
+            );
+        }
+    }
     /* eslint-enable class-methods-use-this */
 }
 
