@@ -16,14 +16,20 @@ function socketHandler(message)
 	-- data contains 'action', 'authkey', and 'arg'
 	if data.authkey ~= authkey then
 		retval.error = 'not authenticated'
+	
+	-- handle generic spotify actions
 	elseif data.action == 'getCurrentTrack' then
-		retval.data = getCurrentTrack()
+		retval.data = spotifyGetCurrentTrack()
 	elseif data.action == 'getAppState' then
-		retval.data = getAppState()
+		retval.data = spotifyGetAppState()
+	elseif data.action == 'fadeTo' then
+		retval.data = spotifyFadeTo(data.args[1], data.args[2])
 	elseif data.action == 'setVar' then
-		retval.data = setSpotifyVar(data.args[1], data.args[2])
+		retval.data = spotifySetVar(data.args[1], data.args[2])
 	elseif data.action == 'sendCmd' then
-		retval.data = sendSpotifyCmd(data.args[1])
+		retval.data = spotifySendCmd(data.args[1])
+	
+	-- handle custom actions like setting up automatic playlist
 	end
 	return hs.json.encode(retval)
 end
@@ -32,11 +38,8 @@ local echo = function(s)
 	print(s)
 end
 
-local server = hs.httpserver.new()
-
-
-
-server:setPort(port)
-server:websocket('/ws', socketHandler)
-server:setCallback(echo)
-server:start()
+spotifyServer = hs.httpserver.new()
+spotifyServer:setPort(port)
+spotifyServer:websocket('/ws', socketHandler)
+spotifyServer:setCallback(echo)
+spotifyServer:start()

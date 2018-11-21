@@ -17,7 +17,6 @@ local spotify_fadeout_playlist_time  = 1 * 60
 -- time to actually do the fade
 local spotify_fadeout_fade_time      = 5
 
-
 -- timers
 local fader
 local spotify_fadeout_timer
@@ -154,24 +153,6 @@ function spotify_menu_countdown_update()
 	else
 		spotify_menu_countdown:setTitle('')
 		spotify_menu_countdown_timer:stop()
-	end
-end
-
-function get_track_duration()
-	-- applescript code because hammerspoon can't return
-	-- track time yet
-	local script = [[
-	tell application "Spotify"
-		delay .1
-		set tt to duration of current track
-		set tt to tt / 1000
-		return tt
-	end tell
-	]]
-	
-	local success, result, raw = hs.osascript.applescript(script)
-	if success then
-		return result
 	end
 end
 
