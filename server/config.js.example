@@ -11,6 +11,8 @@ const CONFIG = {
         },
         spotify: {
             enabled: false,
+            wsurl: 'ws://host:port/endpoint',
+            authkey: '',
             watch_interval: 10 * 1000,
         }
     },
