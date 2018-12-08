@@ -11,13 +11,16 @@ const CONFIG = {
         },
         spotify: {
             enabled: false,
-<<<<<<< HEAD
             wsurl: 'ws://host:port/endpoint',
             authkey: '',
-=======
->>>>>>> upstream/master
             watch_interval: 10 * 1000,
-        }
+        },
+        onyx: {
+            enabled: false,
+            host: '',
+            port: '',
+            watch_interval: 1000,
+        },
     },
 };
 
