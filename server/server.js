@@ -36,7 +36,16 @@ Object.keys(CONFIG.components).forEach(key => {
 
     // setup default listeners
     logger.info(Object.keys(components[key].component));
-    components[key].component.events.on('message', data =>
-        logger.debug(`${key} event: 'message'\nDATA: ${data}`)
-    );
+    components[key].component.events.on('message', data => {
+        logger.debug(`${key} event: 'message'\nDATA: ${JSON.stringify(data)}`);
+        wss.clients.forEach(client => {
+            client.send(
+                JSON.stringify({
+                    type: 'message',
+                    component: key,
+                    data,
+                })
+            );
+        });
+    });
 });

@@ -68,7 +68,7 @@ class StageDisplayApi extends EventEmitter {
             logger.error(`Stage Display API connection error: ${data}`);
         });
         this.ws.on('message', data => {
-            this.emit('message', data);
+            this.emit('message', JSON.parse(data));
             this.handleMessage(data);
             this.emit('update', {});
         });
